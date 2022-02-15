@@ -1,0 +1,38 @@
+#!/bin/env python3
+
+# MVP usage: blockpy blocktime:unblocktime website
+
+import sys, json
+
+path_to_json="./my_json.json"
+
+def load_json():
+    json_file = open(path_to_json,'r+')
+    text = json_file.read()
+    json_file.close()
+    # print(text)
+    return json.loads(text)
+
+def write_json_file(text):
+    json_file = open(path_to_json,'w')
+    json_file.write(text)
+    json_file.close()
+
+def normalize_time(time_string):
+    print("not implemented")
+    exit(1)
+
+
+def main():
+    args = sys.argv[1:]
+    times = args[0].split('-')
+    website = args[1]
+    blocktime = times[0]
+    unblocktime = times[1]
+
+    d = load_json()
+    d[website]= (blocktime,unblocktime)
+    out = json.dumps(d)
+    write_json_file(out)
+
+main()
