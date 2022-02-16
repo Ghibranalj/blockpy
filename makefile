@@ -19,7 +19,7 @@ start-unit:
 	systemctl start blockpyd.timer
 
 enable-unit: install-unit
-	systemctl enable blockpyd.timer
+	systemctl enable --now blockpyd.timer
 
 remove:
 	sudo systemctl stop blockpyd.timer
