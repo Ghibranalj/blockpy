@@ -17,5 +17,5 @@ sudo blockpy [hourfrom]-[hourto] website.com
 sudo blockpy 08-18 youtube.com
 
 # to delete website from block list
-sudo delete youtube.com
+sudo blockpy delete youtube.com
 ```
