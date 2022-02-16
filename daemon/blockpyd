@@ -50,7 +50,7 @@ now = datetime.datetime.now()
 hour = now.hour
 print("Running in hour %d" % hour)
 
-out = "\n" +banner + "\n"
+out =banner + "\n"
 websites = load_json()
 for website in websites :
     value = websites[website]
@@ -64,5 +64,5 @@ for website in websites :
         out += "0.0.0.0 https://www.%s \n"%website
 
 host_prev = load_host_file()
-print(host_prev+out)
+# print(host_prev+out)
 write_host_file(host_prev+out)
