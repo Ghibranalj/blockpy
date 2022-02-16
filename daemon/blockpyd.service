@@ -1,0 +1,6 @@
+
+[Unit]
+Description=Blockpy service
+
+[Service]
+ExecStart=/usr/bin/blockpyd

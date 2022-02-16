@@ -4,7 +4,8 @@ import datetime, json
 import time
 import os
 
-path_to_json="./my_json.json"
+
+path_to_json = "/etc/blockpy/blockpy.json"
 path_to_host="/etc/hosts"
 
 
@@ -15,7 +16,6 @@ def load_json():
     text = json_file.read()
     json_file.close()
     return json.loads(text)
-
 
 def is_time_between(begin_time, end_time, check_time=None):
     # If check time is not given, default to current UTC time
@@ -42,11 +42,12 @@ euid = os.geteuid()
 if(euid != 0):
     print("Please run as root")
     exit (2)
+if( not os.path.exists(path_to_json)):
+    print(path_to_json+" does not exist. Exiting.")
+    exit(0)
 
 now = datetime.datetime.now()
 hour = now.hour
-# # for MVP only hour
-# minute = now.minute
 print("Running in hour %d" % hour)
 
 out = "\n" +banner + "\n"

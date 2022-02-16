@@ -2,15 +2,24 @@
 
 # MVP usage: blockpy blocktime:unblocktime website
 
-import sys, json
+import sys, json, os
+from pathlib import Path
 
-path_to_json="./my_json.json"
+path = '/etc/blockpy/'
+json_name="blockpy.json"
+path_to_json = path+json_name
 
 def load_json():
+    if(not os.path.exists(path)):
+        os.makedirs(path)
+        print("creating /etc/blockpy")
+    
+    Path(path_to_json).touch(exist_ok=True)
     json_file = open(path_to_json,'r+')
     text = json_file.read()
+    if text == "":
+        text = "{}"
     json_file.close()
-    # print(text)
     return json.loads(text)
 
 def write_json_file(text):
@@ -18,21 +27,29 @@ def write_json_file(text):
     json_file.write(text)
     json_file.close()
 
-def normalize_time(time_string):
-    print("not implemented")
-    exit(1)
-
 
 def main():
     args = sys.argv[1:]
+    d = load_json()
+    website = args[1]
+    if(args[0] == "delete"):
+        del d[website]
+        out = json.dumps(d)
+        write_json_file(out)
+        return
+
     times = args[0].split('-')
     website = args[1]
     blocktime = times[0]
     unblocktime = times[1]
 
-    d = load_json()
+
     d[website]= (blocktime,unblocktime)
     out = json.dumps(d)
     write_json_file(out)
 
+euid = os.geteuid()
+if(euid != 0):
+    print("Please run with privileges")
+    exit(2)
 main()
