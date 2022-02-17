@@ -1,55 +1,143 @@
 #!/bin/env python3
 
-# MVP usage: blockpy blocktime:unblocktime website
-
 import sys, json, os
 from pathlib import Path
+import argparse
+import re
 
 path = '/etc/blockpy/'
-json_name="blockpy.json"
-path_to_json = path+json_name
+json_name = "blockpy.json"
+path_to_json = path + json_name
+
 
 def load_json():
-    if(not os.path.exists(path)):
+    if (not os.path.exists(path)):
         os.makedirs(path)
         print("creating /etc/blockpy")
-    
+
     Path(path_to_json).touch(exist_ok=True)
-    json_file = open(path_to_json,'r+')
+    json_file = open(path_to_json, 'r+')
     text = json_file.read()
     if text == "":
         text = "{}"
     json_file.close()
     return json.loads(text)
 
+
 def write_json_file(text):
-    json_file = open(path_to_json,'w')
+    json_file = open(path_to_json, 'w')
     json_file.write(text)
     json_file.close()
 
 
-def main():
-    args = sys.argv[1:]
-    d = load_json()
-    website = args[1]
-    if(args[0] == "delete"):
-        del d[website]
-        out = json.dumps(d)
-        write_json_file(out)
-        return
-
-    times = args[0].split('-')
-    website = args[1]
-    blocktime = times[0]
-    unblocktime = times[1]
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
 
 
-    d[website]= (blocktime,unblocktime)
-    out = json.dumps(d)
-    write_json_file(out)
+filename = os.path.basename(__file__)
+
+parser = argparse.ArgumentParser(
+    description="Block websites. Minimize distraction")
+
+parser.add_argument('-l',
+                    '--list',
+                    help="list all the blocked website",
+                    action="store_true")
+
+subparser = parser.add_subparsers(dest='command')
+delete = subparser.add_parser("delete",
+                              help="Delete website from block list",
+                              aliases=["del"])
+add = subparser.add_parser("set",
+                           help="add or modify website from block list",
+                           aliases=["s"])
+
+add.add_argument('-f',
+                 '--from',
+                 help="when the block start (in 24 hour format)",
+                 required=True,
+                 type=int,
+                 metavar="FROM",
+                 dest='hfrom')
+add.add_argument('-t',
+                 '--to',
+                 help="when the block ends (in 24 hour format)",
+                 required=True,
+                 type=int,
+                 metavar="TO")
+
+add.add_argument(
+    'website',
+    help=
+    "domain of website to block only top level (eg. website.com not https://www.website.com)"
+)
+
+delete.add_argument(
+    'website',
+    help=
+    "domain of website to block only top level (eg. website.com not https://www.website.com)"
+)
+
+args = parser.parse_args()
 
 euid = os.geteuid()
-if(euid != 0):
-    print("Please run with privileges")
+if(not euid == 0):
+    eprint(f"error: please run {filename} with root privileges")
     exit(2)
-main() 
+
+blocked = load_json()
+
+if (args.list):
+    for website in blocked:
+        time = blocked[website]
+        hfrom = time[0]
+        hto = time[1]
+        print(f"{website}   {hfrom}:00 - {hto}:00")
+    exit(0)
+
+command = args.command
+website = args.website
+
+# delete command
+if (command == "delete" or command == 'del'):
+    if (not website in blocked):
+        eprint(f"error: {website} is not blocked")
+        exit(1)
+    del blocked[website]
+    write_json_file(json.dumps(blocked))
+    exit(0)
+
+
+# set command
+hto = args.to
+hfrom = args.hfrom
+# input checking
+def is_valid_hour(hour):
+    return hour >= 0 and hour <= 24
+
+
+if (not is_valid_hour(hto) or not is_valid_hour(hfrom)):
+    eprint('error : hour must be in 24 hour format')
+    exit(1)
+
+def is_valid_domain(website):
+    # domain regex
+    domain_regex = r'(([\da-zA-Z])([_\w-]{,62})\.){,127}(([\da-zA-Z])[_\w-]{,61})?([\da-zA-Z]\.((xn\-\-[a-zA-Z\d]+)|([a-zA-Z\d]{2,})))'
+    expr = re.compile(domain_regex)
+    return expr.match(website)
+
+if(not is_valid_domain(website)):
+    eprint(f'error: {website} is not a valid domain')
+    exit(1)
+
+if ("www." in website):
+    print(f"warning: www should be omitted. {filename} may not work properly.")
+
+if(website in blocked):
+    print(f"modified {website}")
+
+if(not website in blocked):
+    print(f"added {website}")
+
+blocked[website] = (hfrom, hto)
+write_json_file(json.dumps(blocked))
