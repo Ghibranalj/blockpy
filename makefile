@@ -8,12 +8,12 @@ dev: dev-clean install-unit start-unit
 install : install-unit install-scripts enable-unit
 
 install-scripts:
-	cp daemon/blockpyd ${BIN_DEST}
-	cp cli/blockpy ${BIN_DEST}
+	install daemon/blockpyd ${BIN_DEST}
+	install cli/blockpy ${BIN_DEST}
 
 install-unit:
-	cp daemon/blockpyd.service ${UNIT_DEST}
-	cp daemon/blockpyd.timer ${UNIT_DEST}
+	install daemon/blockpyd.service ${UNIT_DEST}
+	install daemon/blockpyd.timer ${UNIT_DEST}
 
 start-unit:
 	systemctl start blockpyd.timer

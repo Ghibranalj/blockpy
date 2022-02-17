@@ -1,5 +1,5 @@
 # blockpy
-
+Block websites. Minimize distraction
 ## installation
 ```bash
 sudo make install
