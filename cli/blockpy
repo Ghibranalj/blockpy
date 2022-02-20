@@ -102,7 +102,7 @@ if (args.list):
         hto = time[1]
         print(f"{website}   {hfrom}:00 - {hto}:00", end="   ")
         if (len(time) < 3):
-            time.append([1, 2, 3, 4, 5, 6])
+            time.append([0,1, 2, 3, 4, 5, 6])
         days = time[2]
         for day in days :
             print(f"{calendar.day_abbr[day]}", end=" ")
