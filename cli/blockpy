@@ -4,6 +4,7 @@ import sys, json, os
 from pathlib import Path
 import argparse
 import re
+import calendar
 
 path = '/etc/blockpy/'
 json_name = "blockpy.json"
@@ -48,25 +49,31 @@ subparser = parser.add_subparsers(dest='command')
 delete = subparser.add_parser("delete",
                               help="Delete website from block list",
                               aliases=["del"])
-add = subparser.add_parser("set",
+set = subparser.add_parser("set",
                            help="add or modify website from block list",
                            aliases=["s"])
 
-add.add_argument('-f',
+set.add_argument('-f',
                  '--from',
                  help="when the block start (in 24 hour format)",
                  required=True,
                  type=int,
                  metavar="FROM",
                  dest='hfrom')
-add.add_argument('-t',
+set.add_argument('-t',
                  '--to',
                  help="when the block ends (in 24 hour format)",
                  required=True,
                  type=int,
                  metavar="TO")
-
-add.add_argument(
+set.add_argument(
+    '-d',
+    '--days',
+    help=
+    "days of week when the website is blocked. Valid days are [mon,tue,wed,thu,fri,sat,sun]. eg. -d sat,sun",
+    type=str,
+    metavar="DAYS")
+set.add_argument(
     'website',
     help=
     "domain of website to block only top level (eg. website.com not https://www.website.com)"
@@ -81,18 +88,25 @@ delete.add_argument(
 args = parser.parse_args()
 
 euid = os.geteuid()
-if(not euid == 0):
+if (not euid == 0):
     eprint(f"error: please run {filename} with root privileges")
     exit(2)
 
 blocked = load_json()
 
 if (args.list):
+    print("[Website]    [Time]          [Days]")
     for website in blocked:
         time = blocked[website]
         hfrom = time[0]
         hto = time[1]
-        print(f"{website}   {hfrom}:00 - {hto}:00")
+        print(f"{website}   {hfrom}:00 - {hto}:00", end="   ")
+        if (len(time) < 3):
+            time.append([1, 2, 3, 4, 5, 6])
+        days = time[2]
+        for day in days :
+            print(f"{calendar.day_abbr[day]}", end=" ")
+        print()
     exit(0)
 
 command = args.command
@@ -107,10 +121,12 @@ if (command == "delete" or command == 'del'):
     write_json_file(json.dumps(blocked))
     exit(0)
 
-
 # set command
 hto = args.to
 hfrom = args.hfrom
+days = args.days
+
+
 # input checking
 def is_valid_hour(hour):
     return hour >= 0 and hour <= 24
@@ -120,24 +136,60 @@ if (not is_valid_hour(hto) or not is_valid_hour(hfrom)):
     eprint('error : hour must be in 24 hour format')
     exit(1)
 
+
 def is_valid_domain(website):
     # domain regex
     domain_regex = r'(([\da-zA-Z])([_\w-]{,62})\.){,127}(([\da-zA-Z])[_\w-]{,61})?([\da-zA-Z]\.((xn\-\-[a-zA-Z\d]+)|([a-zA-Z\d]{2,})))'
     expr = re.compile(domain_regex)
     return expr.match(website)
 
-if(not is_valid_domain(website)):
+
+if (not is_valid_domain(website)):
     eprint(f'error: {website} is not a valid domain')
     exit(1)
 
 if ("www." in website):
     print(f"warning: www should be omitted. {filename} may not work properly.")
 
-if(website in blocked):
+
+# convert days to index according to date.weekday()
+def parse_days(days_str):
+    day_arr = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+    days = days_str.split(',')
+    day_i = []
+    for day in days:
+        if (day not in day_arr):
+            eprint(
+                f"error: {day} is not a valid day. run {filename} set --help")
+            exit(1)
+        day_i.append(day_arr.index(day))
+    return day_i
+
+
+# Determine if days should be parsed || if days is set by user
+should_parse_day = True
+if (days is None):
+    # if not set and not blocked yet
+    if (website not in blocked):
+        days = [0, 1, 2, 3, 4, 5, 6]
+    # if blocked but no days are set -- backward compatability
+    elif (len(blocked[website]) < 3):
+        days = [0, 1, 2, 3, 4, 5, 6]
+    # days is already set
+    else:
+        days = blocked[website][2]
+
+    should_parse_day = False
+
+day_i = days
+if (should_parse_day):
+    day_i = parse_days(days)
+
+if (website in blocked):
     print(f"modified {website}")
 
-if(not website in blocked):
+if (not website in blocked):
     print(f"added {website}")
 
-blocked[website] = (hfrom, hto)
+blocked[website] = (hfrom, hto, day_i)
 write_json_file(json.dumps(blocked))

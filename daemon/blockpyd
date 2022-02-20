@@ -3,6 +3,7 @@
 import datetime, json
 import time
 import os
+import calendar
 
 
 path_to_json = "/etc/blockpy/blockpy.json"
@@ -47,8 +48,13 @@ if( not os.path.exists(path_to_json)):
     exit(0)
 
 now = datetime.datetime.now()
+
+today = datetime.datetime.today().weekday()
+day_name = calendar.day_name[today]
+
 hour = now.hour
-print("Running in hour %d" % hour)
+minute = now.minute
+print(f"Running at {hour}:{minute} on {day_name}")
 
 out =banner + "\n"
 websites = load_json()
@@ -57,6 +63,15 @@ for website in websites :
 
     turn_on = int(value[0])
     turn_off = int(value[1])
+    
+    if (len(value) < 3):
+        value.append([0,1,2,3,4,5,6])
+    days = value[2]
+
+    if(today not in days):
+        print(f"{website} is not blocked on {day_name}s.")
+        continue
+
     between = is_time_between(datetime.time(turn_on, 00), datetime.time(turn_off, 00), datetime.time(hour,00))
     if(between):
         print("%s is blocked" % website)
@@ -65,9 +80,7 @@ for website in websites :
         out += "0.0.0.0 https://www.%s \n"%website
         continue
 
-    print("%s is not blocked" % website)
-    
+    print(f"{website} is not blocked at {hour}:{minute}.")
 
 host_prev = load_host_file()
-# print(host_prev+out)
 write_host_file(host_prev+out)
