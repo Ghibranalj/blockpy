@@ -6,3 +6,6 @@ Persistent=true
 OnCalendar=*:0,15,30,45
 OnBootSec=5
 Unit=blockpyd.service
+
+[Install]
+WantedBy=multi-user.target
