@@ -72,7 +72,7 @@ for website in websites :
         print(f"{website} is not blocked on {day_name}s.")
         continue
 
-    between = is_time_between(datetime.time(turn_on, 00), datetime.time(turn_off, 00), datetime.time(hour,00))
+    between = is_time_between(datetime.time(turn_on, 00), datetime.time(turn_off - 1, 00), datetime.time(hour,00))
     if(between):
         print("%s is blocked" % website)
         out += "0.0.0.0 %s \n"%website
